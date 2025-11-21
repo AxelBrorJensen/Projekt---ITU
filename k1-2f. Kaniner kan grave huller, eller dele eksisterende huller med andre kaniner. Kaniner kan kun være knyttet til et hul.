@@ -1,0 +1,99 @@
+package itumulator.simulator;
+
+import itumulator.simulator.Actor;
+import itumulator.world.World;
+import itumulator.world.Location;
+
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Random;
+public class Rabbit implements Actor {
+    private int energy = 20; // vælg en start-energi
+    private Random rand = new Random();
+    private int age = 0;
+    private int maxEnergy = 20;
+    
+    private Burrow myBurrow;
+    private Location myBurrowLocation;
+    
+     @Override
+    public void act(World world) {
+        
+        //Alder stiger i hver act
+        age++;
+        
+        // Rabbits mister 1 energi per tic
+        energy--;
+        
+        // maxEnergy falder når kaninen bliver ældre (fx hver 10 ticks)
+        if (age % 10 == 0) {
+            maxEnergy--;
+        }
+        
+        //Energy kan ikke overstige maxEnergy
+        if (energy > maxEnergy) {
+            energy = maxEnergy;
+        }
+        
+        //Dødsbetingelse 
+        if (maxEnergy <= 0 || energy <= 0) {
+            world.delete(this);
+            return;
+        }
+        
+        //finder placering
+        Location myPos = world.getLocation(this);
+        
+        //Spiser græs hvis samme felt og får energy
+        Object nb = world.getNonBlocking(myPos);
+        if (nb != null) {
+            if (nb instanceof Grass) {
+                world.remove(nb);
+                energy += 5;
+            } else if (nb instanceof Burrow) {
+                // gør ingenting — burrowen forbliver
+                // evt. marker at kaninen er i sit hul, eller lign.
+            }
+        }
+    
+        //Reproducere
+        if (age >= 5 && rand.nextDouble() < 0.2) { //ældre end 5 og sandsynlighed 20%
+            myPos = world.getLocation(this);
+            Set<Location> Emptyneighbours = world.getEmptySurroundingTiles(myPos);
+            if (!Emptyneighbours.isEmpty()) {
+            List<Location> list = new ArrayList<>(Emptyneighbours);
+            Location babyLocation = list.get(rand.nextInt(list.size()));
+            world.setTile(babyLocation, new Rabbit());
+            }
+        }
+        
+        //Bevægelse
+        myPos = world.getLocation(this);
+        Set<Location> neighbours = world.getEmptySurroundingTiles(myPos);
+
+        if (!neighbours.isEmpty()) {
+            List<Location> list = new ArrayList<>(neighbours);
+            Location randomLocation = list.get(rand.nextInt(list.size()));
+            world.move(this, randomLocation);
+        }
+        
+        if (age >= 5 && rand.nextDouble() < 0.5 && energy > 10) {
+        
+            myPos = world.getLocation(this);
+        
+            // Der må kun være kaninen i blok-laget og ingen non-blocking objekt
+            if (!world.containsNonBlocking(myPos)) {
+        
+                // Hullet kan godt ligge her
+                Burrow rabbitsHole = new Burrow();
+                world.setTile(myPos, rabbitsHole);
+                
+                //Reference til kaninen om sit hul og lokation på hullet
+                this.myBurrow = rabbitsHole;
+                this.myBurrowLocation = myPos;
+            }
+        }
+
+    }
+}
