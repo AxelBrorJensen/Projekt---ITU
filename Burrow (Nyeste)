@@ -1,0 +1,26 @@
+package itumulator.simulator;
+
+import itumulator.world.World;
+import itumulator.simulator.Actor;
+import java.util.Random;
+import itumulator.world.NonBlocking;
+
+public class Burrow implements  NonBlocking {
+    private Random rand = new Random();
+    
+    private int rabbitsInside = 0;
+
+    public boolean hasSpace() {
+        return rabbitsInside == 0;   // kun én kanin må være der
+    }
+
+    public void enter() {
+        rabbitsInside++;
+    }
+
+    public void leave() {
+        rabbitsInside--;
+    }
+    
+    
+}
