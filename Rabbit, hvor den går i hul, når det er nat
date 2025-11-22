@@ -1,0 +1,177 @@
+package itumulator.simulator;
+
+import itumulator.simulator.Actor;
+import itumulator.world.World;
+import itumulator.world.Location;
+
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Random;
+
+public class Rabbit implements Actor {
+
+    private int energy = 20;
+    private Random rand = new Random();
+    private int age = 0;
+    private int maxEnergy = 20;
+
+    private Burrow myBurrow;
+    private Location myBurrowLocation;
+    private boolean isInBurrow = false;
+
+    @Override
+    public void act(World world) {
+
+        // Hvis kaninen ER i hul om natten → stop alt
+        if (isInBurrow) {
+            
+            // Hvis det er dag → kom op
+            if (world.isDay()) {
+                isInBurrow = false;
+        
+                if (myBurrow != null) {
+                    myBurrow.leave();
+                }
+        
+                world.setTile(myBurrowLocation, this);
+            }
+        
+            return; // meget vigtigt!
+        }
+
+        // 2) Hvis det er nat → NAT-AKTIVITET (før ALT andet!)
+        if (world.isNight()) {
+            handleNight(world);
+            return;
+        }
+
+        // Alder og energi
+        age++;
+        energy--;
+
+        if (age % 10 == 0) {
+            maxEnergy--;
+        }
+
+        if (energy > maxEnergy) {
+            energy = maxEnergy;
+        }
+
+        if (maxEnergy <= 0 || energy <= 0) {
+            world.delete(this);
+            return;
+        }
+
+        Location myPos = world.getLocation(this);
+
+        // Spis græs
+        Object nb = world.getNonBlocking(myPos);
+        if (nb instanceof Grass) {
+            world.remove(nb);
+            energy += 5;
+        }
+
+        // Reproduktion
+        if (age >= 5 && rand.nextDouble() < 0.2) {
+            Set<Location> emptyNeighbours = world.getEmptySurroundingTiles(myPos);
+            if (!emptyNeighbours.isEmpty()) {
+                List<Location> list = new ArrayList<>(emptyNeighbours);
+                Location babyLocation = list.get(rand.nextInt(list.size()));
+                world.setTile(babyLocation, new Rabbit());
+            }
+        }
+
+        // Dag-bevægelse
+        Set<Location> neighbours = world.getEmptySurroundingTiles(myPos);
+        if (!neighbours.isEmpty()) {
+            List<Location> list = new ArrayList<>(neighbours);
+            Location randomLocation = list.get(rand.nextInt(list.size()));
+            world.move(this, randomLocation);
+        }
+
+        // Grav hul (kun hvis man ikke har et)
+        if (age >= 5 && rand.nextDouble() < 0.8 && energy > 10 && myBurrow == null) {
+
+            myPos = world.getLocation(this);
+
+            if (!world.containsNonBlocking(myPos)) {
+                Burrow rabbitsHole = new Burrow();
+                world.setTile(myPos, rabbitsHole);
+
+                this.myBurrow = rabbitsHole;
+                this.myBurrowLocation = myPos;
+            }
+        }
+    }
+
+    private void handleNight(World world) {
+
+        Location myPos = world.getLocation(this);
+
+        // 1) Hvis kaninen står på et hul → gå ned i det
+        Object tileObj = world.getNonBlocking(myPos);
+        if (tileObj instanceof Burrow) {
+        
+            Burrow b = (Burrow) tileObj;
+        
+            // Kun gå ned hvis der er plads
+            if (b.hasSpace()) {
+        
+                if (myBurrow == null) {
+                    myBurrow = b;
+                    myBurrowLocation = myPos;
+                }
+        
+                b.enter();          // registrér at en kanin gik ind
+                world.remove(this);
+                isInBurrow = true;
+                return;
+            }
+        }
+
+        // 2) Hvis kaninen har sit eget hul → gå mod det
+        if (myBurrowLocation != null) {
+            moveTowards(myBurrowLocation, world);
+            return;
+        }
+
+        // 3) Hvis kaninen IKKE har eget hul → søg mod nærliggende hul
+        Set<Location> neighbours = world.getSurroundingTiles(myPos);
+
+        for (Location l : neighbours) {
+            Object o = world.getTile(l);
+            if (o instanceof Burrow) {
+                moveTowards(l, world);
+                return;
+            }
+        }
+
+        // 4) Intet hul → gå tilfældigt
+        Set<Location> empty = world.getEmptySurroundingTiles(myPos);
+        if (!empty.isEmpty()) {
+            List<Location> list = new ArrayList<>(empty);
+            Location randomLocation = list.get(rand.nextInt(list.size()));
+            world.move(this, randomLocation);
+        }
+    }
+
+    private void moveTowards(Location target, World world) {
+
+        Location myPos = world.getLocation(this);
+
+        int dx = Integer.compare(target.getX(), myPos.getX());
+        int dy = Integer.compare(target.getY(), myPos.getY());
+
+        Location next = new Location(myPos.getX() + dx, myPos.getY() + dy);
+
+        if (world.isTileEmpty(next)) {
+            world.move(this, next);
+        }
+    }
+    
+    public boolean isInBurrow() {
+        return isInBurrow;
+    }
+
+}
