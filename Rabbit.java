@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 public class Rabbit implements Actor {
-    private int energy = 20; // vælg en start-energi
+    private int energy = 20; 
     private Random rand = new Random();
     private int age = 0;
     private int maxEnergy = 20;
@@ -27,7 +27,7 @@ public class Rabbit implements Actor {
                 Location myLoc = world.getLocation(this);
                 Location burrowLoc = world.getLocation(OwnBurrow);
         
-                // Hvis kaninen IKKE står på hullet → bevæg en retning mod det
+                // Hvis kaninen IKKE står på hullet går mod det
                 if (myLoc != null && !myLoc.equals(burrowLoc)) {
         
                     int dx = Integer.compare(burrowLoc.getX(), myLoc.getX());
@@ -35,13 +35,11 @@ public class Rabbit implements Actor {
         
                     Location next = new Location(myLoc.getX() + dx, myLoc.getY() + dy);
         
-                    // Bevæg kun hvis feltet er tomt
+                    // Bevæger sig hvis der ikke er et hul
                     if (world.isTileEmpty(next)) {
                         world.move(this, next);
-                        return; // Kun én bevægelse per nat-tick
+                        return; 
                     }
-        
-                    // Hvis feltet er fyldt → vi prøver bare igen næste nat-tick
                     return;
                 }
         
@@ -67,13 +65,13 @@ public class Rabbit implements Actor {
             }
         }
         
-        //Alder stiger i hver act
+        //Alder stiger
         age++;
         
         // Rabbits mister 1 energi per tic
         energy--;
         
-        // maxEnergy falder når kaninen bliver ældre (fx hver 10 ticks)
+        // maxEnergy falder når kaninen bliver ældre
         if (age % 10 == 0) {
             maxEnergy--;
         }
@@ -92,7 +90,7 @@ public class Rabbit implements Actor {
         //finder placering
         Location myPos = world.getLocation(this);
         
-        //Spiser græs hvis samme felt og får energy
+        //Spiser græs på samme felt og får energy
         Object grass = world.getNonBlocking(myPos);
         if (grass != null) {
             world.remove(grass);        
@@ -120,10 +118,10 @@ public class Rabbit implements Actor {
         }
                 
         
-        // Kaniner kan grave huller
+        // kan grave huller
         if (OwnBurrow == null && age >= 1 && rand.nextDouble() < 0.05) {
         
-            //Find egen lokation
+            //Find lokation
             myPos = world.getLocation(this);
         
             //Tjek for huller i nærheden 
@@ -140,7 +138,7 @@ public class Rabbit implements Actor {
                 OwnBurrow = (Burrow) world.getNonBlocking(burrowsNearby.get(0));
             }
         
-            // Hvis de ikke er tæt på et hul graver de dog selv et hul
+            // Graver det hul hvis der er ikkke er et lige ved siden af
             else {
                 Set<Location> empty = world.getEmptySurroundingTiles(myPos);
                 if (!empty.isEmpty()) {
