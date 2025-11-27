@@ -1,0 +1,114 @@
+package itumulator.simulator;
+
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import itumulator.world.*;
+import itumulator.simulator.*;
+
+public class RabbitTest {
+
+    private World w;
+
+    @BeforeEach
+    public void setUp() {
+        w = new World(10);
+    }
+
+    @Test
+    public void rabbitEntersBurrowAtNight() {
+        Rabbit r = new Rabbit();
+        Burrow b = new Burrow();
+    
+        Location burLoc = new Location(2, 2);
+    
+        // Sæt burrow
+        w.setTile(burLoc, b);
+    
+        // SÆt rabbit og flyt den ovenpå burrow
+        Location start = new Location(1, 1);
+        w.setTile(start, r);
+        w.move(r, burLoc);
+    
+        w.setNight();
+        w.setCurrentLocation(burLoc);
+    
+        r.act(w);
+    
+        // Rabbit skal være fjernet fra map
+        assertNotEquals(r, w.getTile(burLoc));
+    
+        // Burrow skal dog være der
+        assertTrue(w.getNonBlocking(burLoc) instanceof Burrow);
+    
+        // Rabbit skal have flag: er i hul
+        assertTrue(r.isInBurrow());
+    }
+    
+    @Test
+    public void rabbitExitsBurrowDuringDayIfFree() {
+        Rabbit r = new Rabbit();
+        Burrow b = new Burrow();
+    
+        Location burLoc = new Location(1, 1);
+    
+        // Sæt burrow
+        w.setTile(burLoc, b);
+    
+        // Simulér at kanin er i burret
+        r.isInBurrow = true;
+        r.myBurrow = b;
+        r.myBurrowLocation = burLoc;
+    
+        // Rabbit er fjernet currently
+    
+        w.setDay();
+        w.setCurrentLocation(burLoc);
+    
+        r.act(w);
+    
+        // Rabbit skal nu være placeret på feltet igen
+        assertEquals(r, w.getTile(burLoc));
+    
+        // Burrow skal stadig eksistere som non-blocking
+        assertTrue(w.getNonBlocking(burLoc) instanceof Burrow);
+    
+        // Rabbit skal ikke længere være i burrow
+        assertFalse(r.isInBurrow());
+    }
+    
+    @Test
+    public void rabbitMovesTowardBurrowAtNight() {
+        Rabbit r = new Rabbit();
+        Burrow b = new Burrow();
+    
+        Location burLoc = new Location(4, 4);
+        Location rabbitStart = new Location(2, 2);
+    
+        // Sæt burrow
+        w.setTile(burLoc, b);
+    
+        // sæt rabbit
+        w.setTile(rabbitStart, r);
+    
+        // Giv rabbit et burrow (dens egen (myByrrow))
+        r.myBurrow = b;
+        r.myBurrowLocation = burLoc;
+    
+        // sæt world to night
+        w.setNight();
+        w.setCurrentLocation(rabbitStart);
+    
+        r.act(w);
+    
+        Location newPos = w.getLocation(r);
+    
+        // Forvent at rabbit flytter 1 skridt mod burret
+        assertEquals(new Location(3, 3), newPos);
+    
+        // ️Burrow skal stadig være non-blocking på burrets placering
+        assertTrue(w.getNonBlocking(burLoc) instanceof Burrow);
+    }
+
+    
+}
