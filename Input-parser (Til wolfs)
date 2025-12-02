@@ -1,0 +1,91 @@
+import java.util.Scanner;
+import java.util.Random;
+import itumulator.world.World;
+import itumulator.world.Location;
+import itumulator.simulator.*;
+
+public class InputParser {
+
+    public static void loadFile(Scanner sc, World world, Random rand) {
+        while (sc.hasNext()) {
+            String type = sc.next().toLowerCase();
+            String amountStr = sc.next();            // læser "3" eller "20-30"
+            int amount = parseAmount(amountStr, rand);
+
+            if (type.equals("grass")) {
+                plantRandomGrass(world, amount, rand);
+            } else if (type.equals("rabbit")) {
+                plantRandomRabbits(world, amount, rand);
+            } else if (type.equals("burrow")) {
+                plantRandomBurrows(world, amount, rand);
+            } else if (type.equals("wolf")){
+                plantRandomWolfs(world, amount, rand);
+            } 
+        }
+    }
+
+    // hjælpe metode til at plante random grass i verdenen
+    private static void plantRandomGrass(World world, int amount, Random rand) {
+        int size = world.getSize();
+    
+        for (int i = 0; i < amount; i++) {
+            Location l;
+            do {
+                l = new Location(rand.nextInt(size), rand.nextInt(size));
+            } while (world.getTile(l) != null || world.containsNonBlocking(l));
+            world.setTile(l, new Grass());
+        }
+    }
+    
+    // hjælpe metode til at plante random kaniner i verdenen
+    private static void plantRandomRabbits(World world, int amount, Random rand) {
+        int size = world.getSize();
+
+        for (int i = 0; i < amount; i++) {
+            Location l;
+            do {
+                l = new Location(rand.nextInt(size), rand.nextInt(size));
+            } while (world.getTile(l) != null);
+            world.setTile(l, new Rabbit());
+        }
+    }
+    
+    // hjælpe metode til at plante random Burrows i verdenen
+    private static void plantRandomBurrows(World world, int amount, Random rand) {
+        int size = world.getSize();
+        
+        for (int i = 0; i < amount; i++) {
+            Location l;
+            do {
+                l = new Location(rand.nextInt(size), rand.nextInt(size));
+            } while (world.getTile(l) != null);
+            world.setTile(l, new Burrow());
+        }
+    }
+    
+    // metode til at sætte random Wolfs i verdenen
+    private static void plantRandomWolfs(World world, int amount, Random rand) {
+        int size = world.getSize();
+        for (int i = 0; i < amount; i++) {
+            Location l;
+            do {
+                l = new Location(rand.nextInt(size), rand.nextInt(size));
+            } while (world.getTile(l) != null);
+            world.setTile(l, new Wolf());
+        }
+    }
+    
+    // Metode til at tolke "3" / "20-30"
+    private static int parseAmount(String amountStr, Random rand) {
+        // Hvis det er et interval: fx "20-30"
+        if (amountStr.contains("-")) {
+            String[] parts = amountStr.split("-");
+            int min = Integer.parseInt(parts[0]);
+            int max = Integer.parseInt(parts[1]);
+            return min + rand.nextInt(max - min + 1);
+        } else {
+            // Hvis det er et enkelt tal: fx "3"
+            return Integer.parseInt(amountStr);
+        }
+    }
+}
