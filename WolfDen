@@ -1,0 +1,5 @@
+package itumulator.simulator;
+
+public class WolfDen {
+    // marker-klasse for ulvehule
+}
