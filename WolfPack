@@ -1,0 +1,63 @@
+package itumulator.simulator;
+
+import itumulator.world.Location;
+import itumulator.world.World;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class WolfPack {
+
+    private List<Wolf> members = new ArrayList<>();
+    private WolfDen den; // flokkens hule
+
+    // Tilføj ulv til flok
+    public void add(Wolf w) {
+        members.add(w);
+        w.setPack(this);
+    }
+
+    public List<Wolf> getMembers() {
+        return members;
+    }
+
+    public WolfDen getDen() {
+        return den;
+    }
+
+    public void setDen(WolfDen d) {
+        this.den = d;
+    }
+
+    // Flokkens center
+    public Location getCenter(World world) {
+        int x = 0, y = 0, c = 0;
+
+        for (Wolf w : members) {
+            Location l = world.getLocation(w);
+            if (l != null) {
+                x += l.getX();
+                y += l.getY();
+                c++;
+            }
+        }
+        if (c == 0) return null;
+
+        return new Location(x / c, y / c);
+    }
+
+    // Kamp
+    public static void fight(WolfPack a, WolfPack b, World world) {
+        //Finder størrelse på de forskellige packs
+        int aSize = a.getMembers().size();
+        int bSize = b.getMembers().size();
+        
+        
+        WolfPack loser = (aSize <= bSize) ? a : b; //ternary operator (If-else) statment
+
+        for (Wolf w : new ArrayList<>(loser.members)) {
+            world.delete(w);
+        }
+        loser.members.clear();
+    }
+}
