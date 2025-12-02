@@ -1,0 +1,138 @@
+package itumulator.simulator;
+
+import itumulator.simulator.Actor;
+import itumulator.world.World;
+import itumulator.world.Location;
+
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Random;
+
+public class Wolf implements Actor {
+    private int energy = 20;
+    private Random rand = new Random();
+    private int age = 0;
+    private int maxEnergy = 50;
+    private WolfPack pack;
+    public void setPack(WolfPack p) {
+        this.pack = p;
+    }
+
+    public WolfPack getPack() {
+        return pack;
+    }
+
+    @Override
+    public void act(World world) {
+        //Alder
+        age ++;
+        
+        //Energi
+        energy--;
+        
+        //Ulv dør hvis energi niveau er for lavt
+        if (energy <= 0) {
+            world.delete(this);
+            return;
+        }
+        
+        //Skaffer lokation på ulv
+        Location myPos = world.getLocation(this);
+        
+         // ulv bevæger sig ikke om natten 
+        if (world.isNight()) {
+            return;
+        }
+        
+        
+        //Ulve jager kaniner
+        Set<Location> neighbours = world.getSurroundingTiles(myPos);
+        for (Location l : neighbours) {
+            Object blocking = world.getTile(l);
+            Object nonBlocking = world.getNonBlocking(l);
+    
+            // Rabbit kan være blocking
+            if (blocking instanceof Rabbit) {
+                world.delete(blocking);
+                energy += 5;
+                world.move(this, l);
+                return;
+            }
+    
+            // Eller Rabbit kan være non-blocking (meget vigtigt!)
+            if (nonBlocking instanceof Rabbit) {
+                world.delete(nonBlocking);
+                energy += 5;
+                world.move(this, l);
+                return;
+            }
+        }
+        
+        //Kæmper i pack
+        if (pack != null) {
+            fightIfNeeded(world, myPos);
+        }
+        
+        //Hule byggeri, kun hvis de ikke har en allerede 
+        if (pack != null && pack.getDen() == null) {
+            buildDen(world, myPos);
+        }
+        
+        //Hvis der ikke er nogen Rabbits bevæger ulven sig tilfældigt rundt
+        Set<Location> empty = world.getEmptySurroundingTiles(myPos);
+        if (!empty.isEmpty()) {
+            List<Location> list = new ArrayList<>(empty);
+            Location randomLoc = list.get(rand.nextInt(list.size()));
+            world.move(this, randomLoc);
+        }
+        
+        //Flokken går mod center (Bliver sammen)
+        if (pack != null) {
+            Location center = pack.getCenter(world);
+            if (center != null && !center.equals(myPos)) {
+                moveTowards(world, myPos, center);
+                return;
+            }
+        }
+        
+    }
+
+    //Hjælpe metode til hvis ulve pack skal kæmpe
+    private void fightIfNeeded(World world, Location myPos) {
+        for (Location l : world.getSurroundingTiles(myPos)) {
+            Object o = world.getTile(l);
+            if (o instanceof Wolf other) {
+                if (other.getPack() != null && other.getPack() != this.pack) {
+                    WolfPack.fight(this.pack, other.getPack(), world);
+                    return;
+                }
+            }
+        }
+    }
+    
+    //Hjælpe metode til ulve bygger en hule
+    private void buildDen(World world, Location myPos) {
+        Set<Location> empty = world.getEmptySurroundingTiles(myPos);
+        if (!empty.isEmpty()) {
+            Location denLoc = new ArrayList<>(empty).get(rand.nextInt(empty.size()));
+            WolfDen den = new WolfDen();
+            world.setTile(denLoc, den);
+            pack.setDen(den);
+        }
+    }
+    
+    //
+    private void moveTowards(World world, Location pos, Location target) {
+        int dx = Integer.compare(target.getX(), pos.getX());
+        int dy = Integer.compare(target.getY(), pos.getY());
+        Location next = new Location(pos.getX() + dx, pos.getY() + dy);
+    
+        if (world.isTileEmpty(next)) {
+            world.move(this, next);
+        }
+    }
+
+
+
+}
