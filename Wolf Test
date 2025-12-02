@@ -1,0 +1,152 @@
+package itumulator.simulator;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+
+import itumulator.world.World;
+import itumulator.world.Location;
+
+import java.util.Set;
+
+public class WolfTest {
+
+    private World w;
+
+    @BeforeEach
+    public void setup() {
+        w = new World(10);
+    }
+
+    @Test
+    public void wolfLosesEnergyAndDies() {
+        Wolf w1 = new Wolf();
+        Location l = new Location(1, 1);
+        w.setTile(l, w1);
+    
+        for (int i = 0; i < 30; i++) {
+            w.setCurrentLocation(w.getLocation(w1));
+            w1.act(w);
+            if (!w.contains(w1)) break;
+        }
+    
+        assertFalse(w.contains(w1), "Wolf should die when energy reaches 0");
+    }
+
+
+    @Test
+    public void wolfEatsRabbitIfNearby() {
+        Wolf wolf = new Wolf();
+        Rabbit r = new Rabbit();
+
+        Location wolfLoc = new Location(2, 2);
+        Location rabbitLoc = new Location(2, 3);
+
+        w.setTile(wolfLoc, wolf);
+        w.setTile(rabbitLoc, r);
+
+        w.setDay();
+        w.setCurrentLocation(wolfLoc);
+
+        wolf.act(w);
+
+        assertFalse(w.contains(r), "Rabbit should be eaten");
+        assertEquals(wolf, w.getTile(rabbitLoc), 
+            "Wolf should move onto the rabbit's tile when eating");
+    }
+
+    @Test
+    public void wolvesInSamePackMoveTowardCenter() {
+        WolfPack pack = new WolfPack();
+        Wolf w1 = new Wolf();
+        Wolf w2 = new Wolf();
+
+        // Tilføj ulvene i samme pack
+        pack.add(w1);
+        pack.add(w2);
+
+        Location l1 = new Location(1, 1);
+        Location l2 = new Location(5, 5);
+
+        w.setTile(l1, w1);
+        w.setTile(l2, w2);
+
+        w.setDay();
+        w.setCurrentLocation(l2);
+
+        Location before = w.getLocation(w2);
+        w2.act(w);
+        Location after = w.getLocation(w2);
+
+        assertNotEquals(before, after, 
+            "Wolf should move toward pack center when in same pack");
+    }
+
+    @Test
+    public void wolfBuildsDenIfPackHasNone() {
+        WolfPack p = new WolfPack();
+        Wolf w1 = new Wolf();
+        p.add(w1);
+
+        Location start = new Location(3, 3);
+        w.setTile(start, w1);
+
+        w.setDay();
+        w.setCurrentLocation(start);
+
+        w1.act(w);
+
+        assertNotNull(p.getDen(), "Pack should have a den after wolf builds one");
+    }
+
+    @Test
+    public void wolvesFromDifferentPacksFight() {
+        // Lav to packs
+        WolfPack pA = new WolfPack();
+        WolfPack pB = new WolfPack();
+    
+        // Lav to ulve
+        Wolf a = new Wolf();
+        Wolf b = new Wolf();
+    
+        // Tilføj ulvene til hver sin pack
+        pA.add(a);
+        pB.add(b);
+    
+        // Placér dem som naboer
+        Location locA = new Location(4, 4);
+        Location locB = new Location(4, 5);
+    
+        w.setTile(locA, a);
+        w.setTile(locB, b);
+    
+        // DAG → kamp er tilladt
+        w.setDay();
+    
+        // ACT → begge ulve skal have mulighed for at trigge kamp
+        // Ulv A
+        w.setCurrentLocation(locA);
+        a.act(w);
+    
+        // Ulv B
+        if (w.contains(b)) {  
+            // kun hvis b stadig lever!
+            w.setCurrentLocation(locB);
+            b.act(w);
+        }
+    
+        // Efter en kamp skal præcis én pack være tom
+        boolean aLost = pA.getMembers().isEmpty();
+        boolean bLost = pB.getMembers().isEmpty();
+    
+        assertTrue(aLost || bLost, "One of the packs must lose the fight");
+        assertFalse(aLost && bLost, "Both packs cannot lose — only one should die");
+    }
+
+
+
+
+
+
+
+}
