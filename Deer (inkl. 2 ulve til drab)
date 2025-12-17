@@ -1,0 +1,136 @@
+package itumulator.simulator;
+
+import itumulator.world.*;
+import itumulator.executable.*;
+import java.awt.Color;
+
+import java.util.*;
+
+
+public class Deer extends Herbivore implements DynamicDisplayInformationProvider  {
+    private static int REPRODUCE_CHANCE = 10;
+    private boolean isNightCached = false;
+
+    public Deer() {
+        super(30, 40, 120); // energy, maxEnergy, maxAge
+    }
+
+    @Override
+    protected void animalAct(World world) {
+        isNightCached = world.isNight();
+        if (isNightCached) {
+            return;
+        }
+            
+        Location myPos = world.getLocation(this);
+        
+        // Drab kun 2 eller flere ulve
+        if (countNearbyWolves(world, myPos) >= 2) {
+            world.delete(this);
+            return;
+        }
+
+    
+        // Flugt fra rovdyr
+        for (Location l : world.getSurroundingTiles(myPos)) {
+            Object obj = world.getTile(l);
+            if (obj instanceof Wolf || obj instanceof Bear) {
+                fleeFrom(world, l);
+                return;
+            }
+        }
+    
+        // Flok-adfærd
+        if (moveTowardsNearbyDeer(world, myPos)) {
+            tryReproduce(world, myPos);
+            return;
+        }
+    
+        // Normal bevægelse
+        super.animalAct(world);
+    
+        // Reproduktion
+        tryReproduce(world, myPos);
+    }
+
+    /* ---------------- TJEKKER OMRÅDET FOR ULVE ---------------- */
+
+    private int countNearbyWolves(World world, Location myPos) {
+        int count = 0;
+    
+        for (Location l : world.getSurroundingTiles()) {
+            Object o = world.getTile(l);
+            if (o instanceof Wolf) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /* ---------------- FLOK-ADFÆRD ---------------- */
+
+    private boolean moveTowardsNearbyDeer(World world, Location myPos) {
+        Set<Location> neighbours = world.getSurroundingTiles(myPos);
+
+        for (Location l : neighbours) {
+            Object obj = world.getTile(l);
+            if (obj instanceof Deer) {
+                moveTowards(world, l);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /* ---------------- FLUGT-ADFÆRD ---------------- */
+
+    private void fleeFrom(World world, Location predatorPos) {
+        Location pos = world.getLocation(this);
+
+        int dx = Integer.compare(pos.getX(), predatorPos.getX());
+        int dy = Integer.compare(pos.getY(), predatorPos.getY());
+
+        Location flee = new Location(
+            pos.getX() + dx,
+            pos.getY() + dy
+        );
+
+        if (world.isTileEmpty(flee)) {
+            world.move(this, flee);
+        }
+    }
+
+    /* ---------------- REPRODUKTION ---------------- */
+
+    private void tryReproduce(World world, Location myPos) {
+        if (rand.nextInt(REPRODUCE_CHANCE) != 0) return;
+
+        Set<Location> free = world.getEmptySurroundingTiles(myPos);
+        if (free.isEmpty()) return;
+
+        List<Location> list = new ArrayList<>(free);
+        Location spawn = list.get(rand.nextInt(list.size()));
+
+        world.setTile(spawn, new Deer());
+    }
+
+    /* ---------------- DISPLAY ---------------- */
+    @Override
+    public DisplayInformation getInformation() {
+        boolean small = age <= 20;
+        if (!small)
+            return new DisplayInformation(Color.BLACK, "deer-large");
+        if (isNightCached && !small)
+            return new DisplayInformation(Color.BLACK, "deer-large-sleeping");
+        if (!isNightCached && !small)
+            return new DisplayInformation(Color.BLACK, "deer-large");
+        return new DisplayInformation(Color.BLACK, "deer-small");
+    }
+
+    /* ---------------- DØD / ÅDSEL ---------------- */
+
+    @Override
+    protected int getMeatValue() {
+        return 20;
+    }
+}
